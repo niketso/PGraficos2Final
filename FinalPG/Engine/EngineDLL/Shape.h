@@ -5,6 +5,7 @@
 #define GL_TRIANGLES                      0x0004
 #define GL_TRIANGLE_STRIP                 0x0005
 #define GL_TRIANGLE_FAN                   0x0006
+#define PRIMITIVE_QUAD                    0x0007
 
 class  ENGINEDLL_API Shape :public Entity
 {

@@ -28,6 +28,15 @@ void Entity::SetPos(float x, float y,float z)
 	TranslateMatrix = glm::translate(glm::mat4(1.0f), pos);
 	UpdateWorldMatrix();
 }
+void Entity::SetPosS(float x, float y, float z)
+{
+	pos[0] = x;
+	pos[1] = y;
+	pos[2] = z;
+
+	TranslateMatrix = glm::translate(glm::mat4(1.0f), pos);
+	UpdateWorldMatrix();
+}
 void Entity::SetRot(float x, float y, float z)
 {
 	rot[0] = x;

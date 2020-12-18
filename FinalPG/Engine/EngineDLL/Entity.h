@@ -31,6 +31,7 @@ public:
 	Entity(Renderer * renderPTR);	
 	virtual void Draw() = 0;
 	void SetPos(float x, float y,float z);
+	void SetPosS(float x, float y, float z);
 	void SetRot(float x, float y,float z);
 	void SetScale(float x,float y, float z);
 	void Translate(float x, float y, float z);

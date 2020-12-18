@@ -106,10 +106,11 @@ unsigned int Renderer::GenTextureBuffer( int width, int height,unsigned char* da
 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
 	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 
-	//glGenerateMipmap(GL_TEXTURE_2D);
+	glGenerateMipmap(GL_TEXTURE_2D);
 
 	return texturebuffer;
 }
@@ -137,6 +138,21 @@ void Renderer::BindBuffer(unsigned int vtxbuffer, unsigned int atribId)
 	);
 
 }
+
+void Renderer::BindBuffer(unsigned int vtxbuffer, unsigned int atribId, unsigned int size)
+{
+	glBindBuffer(GL_ARRAY_BUFFER, vtxbuffer);
+	glVertexAttribPointer(
+		atribId,														// Le paso la ubicacion de donde se guardo la mempria del vertice
+		size,																// tamaño
+		GL_FLOAT,														// tipo
+		GL_FALSE,														// normalizado?
+		0,																// Paso
+		(void*)0														// desfase del buffer
+	);
+
+}
+
 void Renderer::BindColorBuffer(unsigned int clrbuffer, unsigned int atribId)
 {
 	glBindBuffer(GL_ARRAY_BUFFER, clrbuffer);

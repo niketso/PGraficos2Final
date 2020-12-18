@@ -20,6 +20,7 @@ protected:
 	
 public:
 	Sprite(Renderer * render, int columns, int rows);
+	Sprite(Renderer * render);
 	~Sprite();
 	void SetTextureVertices(float* vertices, int count);
 	void LoadTexture(const char* name);

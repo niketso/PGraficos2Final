@@ -31,6 +31,7 @@ public:
 	unsigned int  GenColorBuffer(float* buffer, int size);
 	unsigned int GenTextureBuffer(int width, int height, unsigned char* data);
 	void BindBuffer(unsigned int vtxbuffer, unsigned int name);
+	void BindBuffer(unsigned int vtxbuffer, unsigned int atribId, unsigned int size);
 	void BindColorBuffer(unsigned int clrbuffer, unsigned int name);
 	void BindTextureBuffer(unsigned int txtrebuffer, unsigned int name);
 	void BeginDraw(unsigned int name);

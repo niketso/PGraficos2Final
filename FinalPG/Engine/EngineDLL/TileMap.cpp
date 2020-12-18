@@ -1,231 +1,201 @@
 #include "TileMap.h"
+//Cargar el tilemap.
+//Crear tilemap entero.
+//crear buffer que mustre solo la la parte del mapa que se necesita en pantalla.
+
+TileMap::TileMap(Renderer* _renderer, float _tilemapWidth, float _tilemapHeight, const char* _filename,
+	int _cantTilesX, int _cantTilesY, float _tileOffset, float _tileSize,
+	vector<int>* _colliderTiles) : Sprite(_renderer) {
+
+	filename = _filename;
+	tilemapWidth = _tilemapWidth;     //tamño del tilemap ancho
+	tilemapHeight = _tilemapHeight;	  //tamño del tilemap alto
+	cantTilesX = _cantTilesX;			//cant de tiles textura en x
+	cantTilesY = _cantTilesY;			//cant de tiles en textura en y
+	tileOffset = _tileOffset;			//Cargar el tile desde una mejor posicion
+	tileSize = _tileSize;				//tamaño del cada tile
+	vtxCount = _tilemapWidth * _tilemapHeight * 4 * 3;    //
+	cantUVvertex = _tilemapWidth * _tilemapHeight * 4 * 2 ; //
 
 
-TileMap::TileMap(const char * file, int wdwW, int wdwH , Renderer * render, Material *material) 
-{
-	LoadTileMap(file);
+	mapIds = new vector<int>();
+	LoadMapIDs(_filename);	//carga los numeros.
+	tilesWithCollider = _colliderTiles; //cargo los tiles que tienen colisiones
+	tilesColliderData = new vector<TileColliderData>(); //
+	int aux = 0;
 
-	
-	scrollX = 0;
+	//se calcula la posicion del los vertices con respecto al offset.
+	for (int i = 0; i < _tilemapHeight; i++) {
+		for (int j = 0; j < _tilemapWidth; j++)
+		{
 
-	levelH = 0;
-	levelW = 0;
-
-
-	this->render = render;
-	this->material = material;
-
-	
-	LastCameraPos = CurrentCameraPos = DeltaCameraPos = glm::vec3(0, 0, 0);
-
-	int tileW = 64;
-	int tileH = 64;
-	//+4 es las columnas
-	viewW = (wdwW / tileW) + 4;                 
-	viewH = (wdwH / tileH) + 4;
-
-	levelX	= viewH;
-
-	
-	viewMatrix = new vector<vector<int>*>(viewW);
-	for (int i = 0; i < viewW; i++)
-		viewMatrix->at(i) = new vector<int>(viewH);
-
-	tileMatrix = new vector<vector<Tile*>*>(viewW);
-	for (int i = 0; i < viewW; i++)
-		tileMatrix->at(i) = new vector<Tile*>(viewH);
-
-	ChargeTile();
-	LoadTiles();		
-}
-
-TileMap::~TileMap()
-{
+			int col = j * tileSize;	 						
+			int row = i * tileSize;
+			//xyz
 			
-	for (int i = 0; i < levelW; i++) {
-		delete levelMatrix->at(i);
-	}
-	delete levelMatrix;
-	
-	for (int i = 0; i < viewW; i++) {
-		delete viewMatrix->at(i);
-	}
-	delete viewMatrix;
+			vertexPos.push_back(-tileOffset + col);			
+			vertexPos.push_back(tileOffset - row);
+			vertexPos.push_back(0.0f);
+			
+			vertexPos.push_back(-tileOffset + col);
+			vertexPos.push_back((tileOffset - tileSize) - row);
+			vertexPos.push_back(0.0f);
+			
+			vertexPos.push_back(-(tileOffset - tileSize) + col);
+			vertexPos.push_back((tileOffset - tileSize) - row);
+			vertexPos.push_back(0.0f);
+			
+			vertexPos.push_back(-(tileOffset - tileSize) + col);
+			vertexPos.push_back(tileOffset - row);
+			vertexPos.push_back(0.0f);
 
-	for (int i = 0; i < viewW; i++) {
-		for (int j = 0; j < viewH; j++) {
-			delete tileMatrix->at(i)->at(j);
+			
+			//cargas la info del tile que tiene collider
+			if (tilesWithCollider != NULL )
+			{
+				for (int k = 0; k < tilesWithCollider->size(); k++)
+				{
+					if (mapIds->at(aux) == tilesWithCollider->at(k))
+					{
+						TileColliderData colliderAux;
+
+						colliderAux.positionY = (tileOffset - row) - tileSize;
+						colliderAux.positionX = (-tileOffset + col);
+						colliderAux.layer = k;
+						colliderAux.height = tileSize;
+						colliderAux.width = tileSize;
+						tilesColliderData->push_back(colliderAux);
+					}
+				}
+
+
+			}			
+			aux++;
 		}
-		delete tileMatrix->at(i);
 	}
+	//	Guardas la direccion del array de vertices
+	float* p = &vertexPos[0];
+	
+	txtreUVvertex = new float[cantUVvertex];
+
+	LoadUVs();
+
+	SetTilemapVertex(p, vtxCount);
+
+	SetTextures(txtreUVvertex, cantUVvertex);
 }
 
-void TileMap::LoadTileMap(const char * file)
-{
+TileMap::~TileMap() {
+
+}
+
+void TileMap::SetTextures(float* vertex, int cant) {
+
+	UVBufferId = render->GenBuffer(vertex, sizeof(float)* cant);
+}
+
+void TileMap::LoadTexture(const char* name) {
+	header = Importer::LoadBMP(name);
+	textureBufferId = render->GenTextureBuffer(header.width, header.height, header.data);
+	material->BindTexture("myTextureSampler",textureBufferId);
+}
+
+void TileMap::DrawMesh(int typeDraw) {
+	render->LoadIdentityMatrix();
+	render->SetWorldMatrix(WorldMatrix);
+
+	
+	if (material != NULL) {
+		material->Bind();
+		material->SetMatrixProperty("WVP", render->GetWvp());
+		material->BindTexture("myTextureSampler", textureBufferId);
+	}
+
+	render->BeginDraw(0);
+	render->BindBuffer(bufferId, 0,3);
+	render->BeginDraw(1);
+	render->BindBuffer(UVBufferId, 1,2);
+	render->DrawBuffer(vtxCount, typeDraw);
+	render->EndDraw(0);
+	render->EndDraw(1);
+}
+
+void TileMap::Draw() {
+	DrawMesh(PRIMITIVE_QUAD);
+}
+
+void TileMap::LoadMapIDs(const char* _file) {
 	string buffer;
-	ifstream tileFile(file);
+	ifstream tileFile(_file);
 
-	levelW = 1;
-	levelH = 1;
-
-	getline(tileFile, buffer);
-	//el tipo de archivo .csv contiene -1 comas y 0.El for saltea la coma. 
-	for (int i = 0; i < buffer.length(); i++) {
-		if (buffer[i] == ',')
-			levelW++;
+	while (getline(tileFile, buffer, ',')) {
+		mapIds->push_back(stoi(buffer));
 	}
-	while (getline(tileFile, buffer)) {
-		levelH++;
-	}
-		
-	tileFile.clear();
-	//Esta linea hace que el archivo vuelva al principio
-	tileFile.seekg(0, std::ios::beg);
+}
 
-	//vector de mundo.
-	levelMatrix = new vector<vector<int>*>(levelW);
+void TileMap::LoadUVs() {
+	//divido la textura de tiles por la cantidad de tiles.
+	float textureW = 1 / cantTilesX;
+	float textureH = 1 / cantTilesY;
 
-	for (int i = 0; i < levelW; i++) {
-		levelMatrix->at(i) = new vector<int>(levelH);
-	}
+	int idIndex = 0;
+	//parte de la textura va a cada tile.
+	for (int i = 0; i < cantUVvertex; i = i + 8) {
+		txtreUVvertex[i] = 0.0f;
+		txtreUVvertex[i + 1] = 1.0f;
 
-	if (tileFile.is_open()) {
-		for (int i = 0; i < levelW; i++) {
+		txtreUVvertex[i + 2] = 0.0f;
+		txtreUVvertex[i + 3] = 1.0f - textureH;
 
-			getline(tileFile, buffer);
-			int levelW = 0;
+		txtreUVvertex[i + 4] = textureW;
+		txtreUVvertex[i + 5] = 1.0f - textureH;
 
-			for (int j = 0; j < buffer.length(); j++) {
-				
-				switch (buffer[j]) {
-				case '0':
-					levelMatrix->at(i)->at(levelW) = 1;
-					levelW++;
-					break;
+		txtreUVvertex[i + 6] = textureW;
+		txtreUVvertex[i + 7] = 1.0f;
 
-				case '1':
-					levelMatrix->at(i)->at(levelW) = 0;
-					levelW++;
-					break;
-				}
-			}
+		int row = 0;
+		int column = mapIds->at(idIndex);
+
+		while (column >= cantTilesX) {
+			column -= cantTilesX;
+			row++;
 		}
+
+		txtreUVvertex[i] += textureW * column;
+		txtreUVvertex[i + 1] -= textureH * row;
+
+		txtreUVvertex[i + 2] += textureW * column;
+		txtreUVvertex[i + 3] -= textureH * row;
+
+		txtreUVvertex[i + 4] += textureW * column;
+		txtreUVvertex[i + 5] -= textureH * row;
+
+		txtreUVvertex[i + 6] += textureW * column;
+		txtreUVvertex[i + 7] -= textureH * row;
+
+		idIndex++;
 	}
-	tileFile.close();
+}
+
+//todos los vertices del tilemap
+//separar funcion
+void TileMap::SetTilemapVertex(float* _vertex, int _cant) {
+	bufferId = render->GenBuffer(_vertex, sizeof(float) * _cant);	
 }
 
 
-void TileMap::DrawTileMap()
-{
-	for (int w = 0; w < viewW; w++)
-	{
-		for (int h = 0; h < viewH; h++)
+int TileMap::NextTileIsCollider(float _playerTranslationX, float _playerTranslationY, float _playerHeight, float _playerWidht) {
+
+	for (int i = 0; i < tilesColliderData->size(); i++) {
+		if (((_playerTranslationX + (_playerWidht / 2)) >= tilesColliderData->at(i).positionX) &&
+			((_playerTranslationX - (_playerWidht / 2))	<= tilesColliderData->at(i).positionX + tilesColliderData->at(i).width) &&
+			(_playerTranslationY + (_playerHeight / 2)  >= tilesColliderData->at(i).positionY) &&
+			(_playerTranslationY - (_playerHeight / 2) <= tilesColliderData->at(i).positionY + tilesColliderData->at(i).height))
 		{
-			tileMatrix->at(w)->at(h)->Draw();
+			return tilesColliderData->at(i).layer;
 		}
 	}
+	return -1;
 }
-
-void TileMap::ChargeTile() 
-{
-	for (int w = 0; w < viewW; w++)
-	{
-		for (int h = 0; h < viewH; h++)
-		{
-			//set de datos.
-			tileMatrix->at(w)->at(h) = new Tile(render, 1, 1);
-			tileMatrix->at(w)->at(h)->SetMaterial(material);
-			tileMatrix->at(w)->at(h)->AddTexture("Empty.bmp");
-			tileMatrix->at(w)->at(h)->AddTexture("Land.bmp");
-			
-		}
-	}
-}
-
-void TileMap::UpdateTileMap()
-{
-	int posx;
-	int posy = 9;
-
-	//Update X
-	for (int i = 0; i < viewW; i++) {
-		for (int j = 1; j < viewH; j++) {
-			viewMatrix->at(i)->at(j - 1) = viewMatrix->at(i)->at(j);
-		}
-	}
-	for (int i = 0; i < viewW; i++) {
-		int pos = levelMatrix->at(i)->at(levelX);
-		// update de posicion en y.
-		viewMatrix->at(i)->at(viewH - 1) = pos;
-	}
-	//volver a dibujar
-	posx = 12;
-	for (int j = 0; j < viewW; j++) {
-		if (viewMatrix->at(j)->at(viewH - 1) == 0) {
-			tileMatrix->at(j)->at(lastPosX)->ChangeTexture(0);
-					
-		}
-		if (viewMatrix->at(j)->at(viewH - 1) == 1) {
-			tileMatrix->at(j)->at(lastPosX)->ChangeTexture(1);			
-			
-		}
-		//cambiar la posicion.
-		tileMatrix->at(j)->at(lastPosX)->SetPos(posx + render->GetCameraPos().x, posy, 0);
-		posy -= 2;
-	}
-	if (lastPosX < viewH - 1) lastPosX++;
-	else lastPosX = 0;
-}
-
-void TileMap::LoadTiles() {
-	//posiciones iniciales de donde se va empezar a dibujar.
-	
-	int posx = -10;
-	int posy = 9;
-
-	lastPosX = 0;
-	
-
-	for (int w = 0; w < viewW; w++) {
-		posx = -12;
-		for (int h = 0; h < viewH; h++) {										
-				viewMatrix->at(w)->at(h) = levelMatrix->at(w)->at(h);
-				//Dependiendo del dato que nos llega se determina si es fondo o mapa.
-				if (viewMatrix->at(w)->at(h) == 0) {
-					tileMatrix->at(w)->at(h)->ChangeTexture(0);
-					
-				}
-				if (viewMatrix->at(w)->at(h) == 1) {
-					tileMatrix->at(w)->at(h)->ChangeTexture(1);
-					
-				}			
-				posx += 2;
-				tileMatrix->at(w)->at(h)->SetPos(posx, posy ,0);
-		}
-		posy -= 2;
-	}
-}
-
-void TileMap::Update() 
-{
-	CurrentCameraPos = render->GetCameraPos();
-	DeltaCameraPos = CurrentCameraPos - LastCameraPos;
-	LastCameraPos = CurrentCameraPos;
-	
-	scrollX += DeltaCameraPos.x;
-	if (scrollX >= 2) {
-		if (levelX < levelW - 1)levelX++;
-		UpdateTileMap();
-		scrollX = 0;
-	}
-	else
-		if (scrollX <= -2) {
-			if (levelX < 0)levelX--;
-			UpdateTileMap();
-			scrollX = 0;
-		}
-	
-}
-
 
 

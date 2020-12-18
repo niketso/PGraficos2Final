@@ -9,7 +9,7 @@ class ENGINEDLL_API Gamebase {
 private:
 	double currentFrame;
 	double lastFrame;
-	Window* window;
+	
 public:
 	Gamebase();
 	~Gamebase();
@@ -17,6 +17,7 @@ public:
 	bool Stop();
 	void Loop();
 protected:
+	Window* window;
 	double deltaTime;
 	Renderer * render;
 	virtual bool OnStart() = 0;

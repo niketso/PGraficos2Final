@@ -30,6 +30,33 @@ Sprite::Sprite(Renderer * render, int columns, int rows): Shape (render)
 	SetTextureVertices(txtreUVvertex, 4);	
 }
 
+Sprite::Sprite(Renderer * render):Shape (render)
+{
+	txtreUVvertex = NULL;
+	UVBufferId = -1;
+	textureBufferId = -1;
+
+	shouldDisposeTexture = false;
+
+	vertex = new float[12]
+	{
+		-1.0f,-1.0f , 0.0f ,
+		-1.0f,1.0f , 0.0f ,
+		1.0f, -1.0f , 0.0f ,
+		1.0f, 1.0f , 0.0f
+	};
+
+	SetVertices(vertex, 4);
+
+	anim = new Animation(1, 1);
+
+
+	txtreUVvertex = anim->UpdateAnimation(0);
+
+	SetTextureVertices(txtreUVvertex, 4);
+
+}
+
 
 Sprite::~Sprite()
 {
